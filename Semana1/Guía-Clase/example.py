@@ -15,3 +15,10 @@ appointment = st.slider(
     value=(time(11, 30), time(12, 45))
 )
 st.write("Está agendado para: ", appointment)
+
+start_time = st.slider(
+    "Ver casos ocurridos en: ",
+    value = datetime(2020, 1, 1, 9, 30),
+    format="DD/MM/YY - hh:mm"
+)
+st.write("Fecha seleccionada: ", start_time)
