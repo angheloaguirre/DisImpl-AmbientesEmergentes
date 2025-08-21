@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from datetime import time
+from datetime import time, datetime
 
 st.title('Semana 1')
 st.write('¡Clase de prueba para aprender **funcionalidades básicas** de Streamlit!')
