@@ -48,7 +48,8 @@ def mostrar_topn_mapa(df):
         color=variable,
         hover_name="Country_Region",
         color_continuous_scale="Reds",
-        title=f"{opcion} por país"
+        title=f"{opcion} por país",
+        labels={variable: opcion}
     )
 
     st.plotly_chart(fig, use_container_width=True)
