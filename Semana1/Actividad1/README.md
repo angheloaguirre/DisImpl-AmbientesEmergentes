@@ -2,7 +2,7 @@
 <h3>Actividad 1 de la Semana 1</h3>
 <h5>Realizada por el Grupo 5</h5>
 Integrantes:
-<br>
+<br><br>
 <table>
   <tr>
     <th>Alumno</th>
