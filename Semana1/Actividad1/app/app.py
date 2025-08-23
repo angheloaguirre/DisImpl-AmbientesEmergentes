@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 import numpy as np
-from modelado_proyecciones import mostrar_series_tiempo
+from modelado_temporal import mostrar_series_tiempo
 
 # configuración básica
 st.set_page_config(page_title="COVID-19 JHU – Métricas y Análisis",layout="wide")
