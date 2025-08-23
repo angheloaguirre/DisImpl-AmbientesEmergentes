@@ -2,6 +2,7 @@
 <h3>Actividad 1 de la Semana 1</h3>
 <h5>Realizada por el Grupo 5</h5>
 Integrantes:
+<br>
 <table>
   <tr>
     <th>Alumno</th>
@@ -34,5 +35,5 @@ Integrantes:
     <td><a href="mailto:maria.huamanif@usil.pe">maria.huamanif@usil.pe</a></td>
   </tr>
 </table>
-<br><br>
+<br>
 <p>Enlace de la solución (hecha con Streamlit): <a href="https://flgg4lwnoef4c4wxighwrf.streamlit.app">¡Visitar la solución!</a></p>
