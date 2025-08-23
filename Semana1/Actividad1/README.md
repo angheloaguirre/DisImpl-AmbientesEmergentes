@@ -12,5 +12,5 @@ Integrantes:
 - Toche Sanchez	Jacqueline Ivette	2020185
 <br>
 - Huamani Flores	Maria Fernanda	2121423
-<br>
+<br><br>
 Enlace de la solución (hecha con Streamlit): https://flgg4lwnoef4c4wxighwrf.streamlit.app/
