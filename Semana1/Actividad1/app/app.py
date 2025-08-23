@@ -4,21 +4,12 @@ from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 import numpy as np
+from modelado_proyecciones import mostrar_series_tiempo
 
-# ==================================
-# === 3.1 Generación de Series de Tiempo con Suavizado de 7 Días ===
-# ==================================
-# Título y descripción
-st.subheader('🌍 3.1 Generación de Series de Tiempo con Suavizado de 7 Días')
-st.markdown("""
-**Descripción de la actividad:**  
-Este gráfico muestra los **casos confirmados** y **muertes suavizadas** a través de una media móvil de 7 días. El suavizado es importante para eliminar fluctuaciones de datos y observar tendencias más claras.
-
-Se generan los datos de manera simulada para los días previos a la fecha final y se muestran en un gráfico de líneas para facilitar la visualización de las tendencias.
-
-""")
-
-st.caption("⚠️ Solo se dispone de los reportes diarios de: 28/02/2022, 01/03/2022 y 19/04/2022.")
+# configuración básica
+st.set_page_config(page_title="COVID-19 JHU – Métricas y Análisis",layout="wide")
+st.title("COVID-19 (JHU) Dashboard")
+st.caption("Fuente: Johns Hopkins CSSE – Daily Report 2022-04-18")
 
 # Cargar los datos
 @st.cache_data
@@ -31,107 +22,109 @@ def load_data():
 # Cargar los datos
 df = load_data()
 
-# Selección de país
-country = st.selectbox("Seleccione un país para ver sus datos suavizados:", df['Country_Region'].unique())
+# Sidebar con filtros
+st.sidebar.header("Filtros")
 
-# Filtrar los datos por el país seleccionado
-df_country = df[df['Country_Region'] == country]
+# Por rango de fechas
+if "Last_Update" in df.columns:
+    df["Last_Update"] = pd.to_datetime(df["Last_Update"], errors="coerce")
+    min_date = df["Last_Update"].min()
+    max_date = df["Last_Update"].max()
+    date_range = st.sidebar.date_input("Rango de fechas", [min_date, max_date])
+    if len(date_range) == 2:
+        df = df[(df["Last_Update"].dt.date >= date_range[0]) &
+                (df["Last_Update"].dt.date <= date_range[1])]
 
-# Agrupar por fecha y sumar los casos confirmados
-df_country_grouped = df_country.groupby('Last_Update').agg({'Confirmed': 'sum', 'Deaths': 'sum'}).reset_index()
+# Por países
+paises = df["Country_Region"].unique()
+paises_sel = st.sidebar.multiselect("Selecciona países", options=paises, default=paises[:5])
+df = df[df["Country_Region"].isin(paises_sel)]
 
-# Obtener la última fecha (Last_Update) en los datos del país
-last_update = df_country_grouped['Last_Update'].max()
-aux_date = last_update.strftime('%d/%m/%Y')
+# Filtro por provincias/estados
+if "Province_State" in df.columns:
+    provincias = df["Province_State"].dropna().unique()
+    provincias_sel = st.sidebar.multiselect("Selecciona provincias/estados", options=provincias)
+    if provincias_sel:
+        df = df[df["Province_State"].isin(provincias_sel)]
 
-colA, colB = st.columns(2)
-with colA:
-    st.metric("Confirmados (día base)", df_country_grouped['Confirmed'].iloc[-1])
-with colB:
-    st.metric("Muertes (día base)", df_country_grouped['Deaths'].iloc[-1])
+# Filtro por umbral de confirmados
+umbral_conf = st.sidebar.slider("Umbral mínimo de confirmados", 0, int(df["Confirmed"].max()), 1000)
+df = df[df["Confirmed"] >= umbral_conf]
 
-st.write(f"*Fecha base:* **{aux_date}** -- Fuente: reporte diario JHU (1 día).")
+# Filtro por carga de población
+if "Population" in df.columns:
+    pop_min, pop_max = st.sidebar.slider("Rango de población", 
+                                         int(df["Population"].min()), 
+                                         int(df["Population"].max()), 
+                                         (int(df["Population"].min()), int(df["Population"].max())))
+    df = df[(df["Population"] >= pop_min) & (df["Population"] <= pop_max)]
 
-# Generar las 7 fechas: 6 fechas anteriores a la de Last_Update
-date_list = [last_update]  # Agregamos la última fecha (Last_Update)
-for i in range(6):
-    date_list.append(last_update - timedelta(days=i+1))  # Restamos un día por cada iteración
-
-# Convertir las fechas a formato "DD/MM/YYYY"
-date_list = [date.strftime('%d/%m/%Y') for date in reversed(date_list)]  # Reversed para tenerlas en orden ascendente
-
-# Crear la lista de valores para "Confirmed" en orden ascendente
-confirmed_values = [df_country_grouped['Confirmed'].iloc[-1]]  # Empezamos con el valor más reciente
-for i in range(6):
-    # Generar un incremento del 5% a 20% de lo último (en función de los datos reales)
-    percent = np.random.uniform(0.05, 0.20)  # Un rango más ajustado
-    new_value = max(confirmed_values[-1] * (1 - percent), 0)  # Restamos un porcentaje para los días previos
-    confirmed_values.append(new_value)
-
-# Ordenar los valores de casos confirmados de menor a mayor
-confirmed_values = sorted(confirmed_values)
-
-# Crear la lista de valores para "Deaths" de manera similar
-deaths_values = [df_country_grouped['Deaths'].iloc[-1]]  # Empezamos con el valor más reciente
-for i in range(6):
-    # Generar un incremento del 2% a 10% de lo último (en función de los datos reales)
-    percent = np.random.uniform(0.02, 0.10)  # Un rango más ajustado
-    new_value = max(deaths_values[-1] * (1 - percent), 0)  # Restamos un porcentaje para los días previos
-    deaths_values.append(new_value)
-
-# Ordenar los valores de muertes de menor a mayor
-deaths_values = sorted(deaths_values)
-
-# Crear DataFrame con índices que comienzan desde 1
-df_display = pd.DataFrame({
-    'Fecha': date_list,
-    'Casos Confirmados': np.array(confirmed_values).astype(int),  # Convertir a enteros
-    'Muertes': np.array(deaths_values).astype(int)  # Convertir a enteros
+#KPIs principales
+# Agrupar por país
+grouped = df.groupby("Country_Region", as_index=False).agg({
+    "Confirmed": "sum",
+    "Deaths": "sum"
 })
-df_display.index += 1  # Cambiar el índice para que empiece desde 1
 
-# Mostrar la tabla con las fechas y los valores
-st.write("### Tabla de Casos Confirmados y Muertes por Fecha:")
-st.write(df_display)
 
-# --- Función para formatear el eje Y en millares ---
-def thousands(x, pos):
-    return '%1.0fK' % (x * 1e-3)  # Convertir a miles y mostrar 'K'
+# Calcular CFR (muertes / confirmados)
+grouped["CFR"] = (grouped["Deaths"] / grouped["Confirmed"]) * 100
 
-# --- construir series con índice de fechas ---
-idx = pd.to_datetime(date_list, dayfirst=True)
-confirmed_sr = pd.Series(confirmed_values, index=idx)
-deaths_sr = pd.Series(deaths_values, index=idx)
 
-# --- Suavizado 7 días (rolling mean) ---
-confirmed_ma7 = confirmed_sr.rolling(window=7, min_periods=1, center=True).mean()
-deaths_ma7 = deaths_sr.rolling(window=7, min_periods=1, center=True).mean()
+#calcular un promedio por país:
+incident_rate = df.groupby("Country_Region")["Incident_Rate"].mean().reset_index()
+grouped = grouped.merge(incident_rate, on="Country_Region")
 
-# --- plot lado a lado ---
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
 
-# Confirmados
-ax1.plot(idx, confirmed_sr.values, linewidth=1.2, alpha=0.35, label='Serie original')
-ax1.plot(idx, confirmed_ma7.values, linewidth=2.5, label='MA 7 días')
-ax1.set_title(f"Casos Confirmados Suavizados en {country}")
-ax1.set_xlabel('Fecha')
-ax1.set_ylabel('Número de casos en millares')
-ax1.legend()
-for label in ax1.get_xticklabels(): 
-    label.set_rotation(45)
+# Renombrar columnas
+grouped = grouped.rename(columns={
+    "Country_Region": "Pais",
+    "Confirmed": "Confirmados",
+    "Deaths": "Fallecidos",
+    "CFR": "CFR (%)",
+    "Incident_Rate": "Tasa casos por 100k (Incident_Rate)"
+})
 
-# Aplicar formateo a los valores del eje Y en 'ax1'
-ax1.yaxis.set_major_formatter(FuncFormatter(thousands))
 
-# Muertes
-ax2.plot(idx, deaths_sr.values, linewidth=1.2, alpha=0.35, label='Serie original', color='tab:orange')
-ax2.plot(idx, deaths_ma7.values, linewidth=2.5, label='MA 7 días', color='tab:red')
-ax2.set_title(f"Muertes Suavizadas en {country}")
-ax2.set_xlabel('Fecha')
-ax2.set_ylabel('Número de muertes')
-ax2.legend()
-for label in ax2.get_xticklabels(): 
-    label.set_rotation(45)
+# Mostrar resultados
+st.subheader("📈 KPIs Principales")
+st.dataframe(grouped)
 
-# Mostrar los gráficos
-st.pyplot(fig)
+# Definición de las pestañas
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "📂 Vista General",
+    "📈 Estadística Avanzada",
+    "📈 Modelado temporal",
+    "📊 Clustering y PCA",
+    "🔎 Calidad de datos"
+])
+
+# ==========================
+# Contenido de las pestañas
+# ==========================
+
+#Vista general
+with tab1:
+    st.header("📂 Vista General")
+    st.write("Aquí se mostrará el dataset filtrado con los parámetros del sidebar.")
+
+#Estadística
+with tab2:
+    st.header("📈 Estadística Avanzada")
+    st.write("Aquí se calcularán las métricas clave por país (Confirmados, Fallecidos, CFR, tasas por 100k).")
+
+#Modelado temporal
+with tab3:
+    st.header("🧪 Modelado temporal")
+    # === 3.1 Generación de Series de Tiempo con Suavizado de 7 Días ===
+    mostrar_series_tiempo(df)
+
+#Clusters
+with tab4:
+    st.header("📊 Clustering y PCA")
+    st.write("Aquí se construirá el clustering de países con K-means y se mostrarán los grupos.")
+
+#Calidad de datos
+with tab5:
+    st.header("🔎 Calidad de datos")
+    st.write("Aquí se reducirá la dimensionalidad con PCA y se graficarán los componentes principales.")
