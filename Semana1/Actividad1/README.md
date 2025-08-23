@@ -1,4 +1,4 @@
-Curso: Diseño e Implementación en Ambientes Emergentes
+<h1>Curso: Diseño e Implementación en Ambientes Emergentes</h1>
 Actividad 1 de la Semana 1 realizada por el Grupo 5
 Intengrantes:
 - Aguirre Torpoco	Anghelo Josimar	2121254
