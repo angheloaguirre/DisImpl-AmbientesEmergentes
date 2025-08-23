@@ -1,6 +1,7 @@
 <h1>Curso: Diseño e Implementación en Ambientes Emergentes</h1>
-Actividad 1 de la Semana 1 realizada por el Grupo 5
-Intengrantes:
+<h3>Actividad 1 de la Semana 1 realizada por el Grupo 5</h3>
+<br>
+<p>Intengrantes:
 - Aguirre Torpoco	Anghelo Josimar	2121254
 - Diaz Molina	Liz Jhennifer	2010021
 - Diaz Vazquez	Carlos Jaime	2012212
@@ -8,3 +9,4 @@ Intengrantes:
 - Huamani Flores	Maria Fernanda	2121423
 
 Enlace de la solución (hecha con Streamlit): https://flgg4lwnoef4c4wxighwrf.streamlit.app/
+</p>
