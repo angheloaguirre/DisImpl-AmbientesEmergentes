@@ -35,4 +35,4 @@ Integrantes:
   </tr>
 </table>
 <br><br>
-<p>Enlace de la solución (hecha con Streamlit): <a href="https://flgg4lwnoef4c4wxighwrf.streamlit.app"></a>¡Visitar la solución!/</p>
+<p>Enlace de la solución (hecha con Streamlit): <a href="https://flgg4lwnoef4c4wxighwrf.streamlit.app">¡Visitar la solución!</a></p>
