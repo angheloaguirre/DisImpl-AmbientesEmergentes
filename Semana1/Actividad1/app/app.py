@@ -1,10 +1,7 @@
 import pandas as pd
 import streamlit as st
-from datetime import datetime, timedelta
-import matplotlib.pyplot as plt
-from matplotlib.ticker import FuncFormatter
-import numpy as np
 from modelado_temporal import mostrar_series_tiempo
+from vista_general import mostrar_topn_mapa
 
 # configuración básica
 st.set_page_config(page_title="COVID-19 JHU – Métricas y Análisis",layout="wide")
@@ -106,8 +103,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 #Vista general
 with tab1:
     st.header("📂 Vista General")
-    st.write("Aquí se mostrará el dataset filtrado con los parámetros del sidebar.")
-
+    mostrar_topn_mapa(df)
 #Estadística
 with tab2:
     st.header("📈 Estadística Avanzada")
