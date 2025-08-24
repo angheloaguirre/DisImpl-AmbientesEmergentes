@@ -131,6 +131,36 @@ def mostrar_series_tiempo(df):
     # Mostrar los gráficos
     st.pyplot(fig)
 
+
+    # === EXPORTACIÓN ===
+    # CSV
+    csv = df_display.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="⬇️ Descargar datos en CSV",
+        data=csv,
+        file_name=f"series_tiempo_{country}.csv",
+        mime="text/csv"
+    )
+
+    # PNG
+    buf_png = io.BytesIO()
+    fig.savefig(buf_png, format="png")
+    st.download_button(
+        label="⬇️ Descargar gráfico en PNG",
+        data=buf_png.getvalue(),
+        file_name=f"series_tiempo_{country}.png",
+        mime="image/png"
+    )
+
+    # SVG
+    buf_svg = io.BytesIO()
+    fig.savefig(buf_svg, format="svg")
+    st.download_button(
+        label="⬇️ Descargar gráfico en SVG",
+        data=buf_svg.getvalue(),
+        file_name=f"series_tiempo_{country}.svg",
+        mime="image/svg+xml"
+    )
 # === 3.2 y 3.3 Modelado ETS y Validación ===
 def mostrar_modelado_forecast(url, df):
     # Funciones de evaluación
