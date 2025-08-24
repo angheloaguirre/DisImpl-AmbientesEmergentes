@@ -20,8 +20,6 @@ def load_data():
 
 # Cargar los datos
 df = load_data()
-df['Confirmed'] = df['Confirmed'].fillna(0).astype(int)
-df['Deaths'] = df['Deaths'].fillna(0).astype(int)
 
 # Sidebar con filtros
 st.sidebar.header("Filtros")
@@ -39,13 +37,21 @@ if "Last_Update" in df.columns:
 # Por países
 paises = df["Country_Region"].unique()
 paises_sel = st.sidebar.multiselect("Selecciona países", options=paises, default=paises[:5])
+
+# Asegúrarse de que hayan países seleccionados
+if len(paises_sel) == 0:
+    st.error("🚫 No hay datos disponibles para los filtros seleccionados.")
+    st.warning("⚠️ Por favor elija al menos 1 país para poder ver los datos.")
+    st.stop()  # Detiene la ejecución si no hay países seleccionados
+
+# Filtrar el DataFrame según los países seleccionados
 df = df[df["Country_Region"].isin(paises_sel)]
 
-# Verificar si el DataFrame está vacío después de los filtros
+# Si df está vacío después del filtrado, muestra un mensaje
 if df.empty:
     st.error("🚫 No hay datos disponibles para los filtros seleccionados.")
     st.warning("⚠️ Por favor elija al menos 1 país para poder ver los datos.")
-    st.stop()  # Detener la ejecución si el DataFrame está vacío
+    st.stop()  # Detiene la ejecución si no hay datos disponibles
 
 # Filtro por provincias/estados
 if "Province_State" in df.columns:
@@ -125,7 +131,9 @@ with tab3:
     st.header("🧪 Modelado temporal")
     # === 3.1 Generación de Series de Tiempo con Suavizado de 7 Días ===
     mostrar_series_tiempo(df)
-    mostrar_modelado_forecast(url)
+    # === 3.2 y 3.3 Modelado ETS y Validación ===
+    mostrar_modelado_forecast(url, df)
+    # === 3.4 Mostrar bandas de confianza en la gráfica de forecast ===
     #bandas_confianza(df)
 #Clusters
 with tab4:
