@@ -149,7 +149,8 @@ def mostrar_modelado_forecast(df):
 
     st.subheader("🧪 Modelado y Proyección COVID-19")
     last_date = df["Last_Update"].max().normalize()
-    daily = df[df["Last_Update"].dt.normalize()==last_date].groupby("Country_Region",as_index=False).sum()
+    numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns
+    daily = df[df["Last_Update"].dt.normalize() == last_date].groupby("Country_Region")[numeric_cols].sum().reset_index()
     country = st.selectbox("Selecciona un país", options=sorted(daily["Country_Region"].unique()))
     row = daily[daily["Country_Region"]==country].iloc[0]
     base_confirmed, base_deaths = int(row["Confirmed"]), int(row["Deaths"])
