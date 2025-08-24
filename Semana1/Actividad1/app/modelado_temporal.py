@@ -222,10 +222,10 @@ def mostrar_modelado_forecast(url):
     c2.metric("MAPE", f"{mape_val:.2f}%")
 
     fig1, ax1 = plt.subplots(figsize=(9,4.5))
-    ax1.plot(train.index, train.values,label="Entrenamientodasdas")
+    ax1.plot(train.index, train.values,label="Entrenamiento")
     ax1.plot(test.index, test.values,label="Real (test)")
     ax1.plot(preds.index, preds.values,"--",label="Pronóstico (test)")
-    ax1.set_title(f"Backtesting ETS - {target}")
+    ax1.set_title(f"Backtesting ETS dasdsada- {target}")
     ax1.legend()
     plt.xticks(rotation=45)
     st.pyplot(fig1)
