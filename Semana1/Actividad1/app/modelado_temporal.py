@@ -225,7 +225,7 @@ def mostrar_modelado_forecast(url):
     ax1.plot(train.index, train.values,label="Entrenamiento")
     ax1.plot(test.index, test.values,label="Real (test)")
     ax1.plot(preds.index, preds.values,"--",label="Pronóstico (test)")
-    ax1.set_title(f"Backtesting ETS dasdsada- {target}")
+    ax1.set_title(f"Backtesting ETS - {target}")
     ax1.legend()
     plt.xticks(rotation=45)
     st.pyplot(fig1)
