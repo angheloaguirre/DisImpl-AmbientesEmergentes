@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-from modelado_temporal import mostrar_series_tiempo
+from modelado_temporal import mostrar_series_tiempo, mostrar_modelado_forecast
 from vista_general import mostrar_topn_mapa
 
 # configuración básica
@@ -18,6 +18,8 @@ def load_data():
 
 # Cargar los datos
 df = load_data()
+df['Confirmed'] = df['Confirmed'].fillna(0).astype(int)
+df['Deaths'] = df['Deaths'].fillna(0).astype(int)
 
 # Sidebar con filtros
 st.sidebar.header("Filtros")
@@ -114,7 +116,7 @@ with tab3:
     st.header("🧪 Modelado temporal")
     # === 3.1 Generación de Series de Tiempo con Suavizado de 7 Días ===
     mostrar_series_tiempo(df)
-
+    mostrar_modelado_forecast(df)  
 #Clusters
 with tab4:
     st.header("📊 Clustering y PCA")
