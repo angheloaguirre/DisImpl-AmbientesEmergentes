@@ -2,15 +2,27 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import io
 
 def mostrar_calidad_datos(df):
     # ==============================
     #Valores nulos
     # ==============================
-
     st.write("**Valores nulos por columna:**")
-    st.write(df.isnull().sum())
+    valores_nulos = df.isnull().sum()
+    st.write(valores_nulos)
 
+    # Exportar valores nulos a CSV
+    nulos_df = valores_nulos.reset_index()
+    nulos_df.columns = ["Columna", "Valores Nulos"]
+    csv_nulos = nulos_df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="⬇️ Descargar valores nulos (CSV)",
+        data=csv_nulos,
+        file_name="valores_nulos.csv",
+        mime="text/csv"
+    )
+    
     # ==============================
     #Inconsistencias
     # ==============================
@@ -54,7 +66,14 @@ def grafico_control_confirmados(df):
     plt.legend()
 
     st.pyplot(plt)
+    # Guardar y habilitar descarga
+    plt.savefig("grafico_control_confirmados.png", dpi=300, bbox_inches="tight")
+    plt.savefig("grafico_control_confirmados.svg", bbox_inches="tight")
 
+    with open("grafico_control_confirmados.png", "rb") as f:
+        st.download_button("⬇️ Descargar Confirmados (PNG)", f, file_name="grafico_control_confirmados.png")
+    with open("grafico_control_confirmados.svg", "rb") as f:
+        st.download_button("⬇️ Descargar Confirmados (SVG)", f, file_name="grafico_control_confirmados.svg")
 
 def grafico_control_mortalidad(df):
     # Agrupar por país
@@ -85,3 +104,12 @@ def grafico_control_mortalidad(df):
     plt.legend()
 
     st.pyplot(plt)
+
+    # Guardar y habilitar descarga
+    plt.savefig("grafico_control_mortalidad.png", dpi=300, bbox_inches="tight")
+    plt.savefig("grafico_control_mortalidad.svg", bbox_inches="tight")
+
+    with open("grafico_control_mortalidad.png", "rb") as f:
+        st.download_button("⬇️ Descargar Mortalidad (PNG)", f, file_name="grafico_control_mortalidad.png")
+    with open("grafico_control_mortalidad.svg", "rb") as f:
+        st.download_button("⬇️ Descargar Mortalidad (SVG)", f, file_name="grafico_control_mortalidad.svg")
