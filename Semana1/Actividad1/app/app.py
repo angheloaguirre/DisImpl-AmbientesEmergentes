@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 from modelado_temporal import mostrar_series_tiempo
 from vista_general import mostrar_topn_mapa
+from clustering_pca import mostrar_clustering_pca
 
 # configuración básica
 st.set_page_config(page_title="COVID-19 JHU – Métricas y Análisis",layout="wide")
@@ -119,6 +120,7 @@ with tab3:
 with tab4:
     st.header("📊 Clustering y PCA")
     st.write("Aquí se construirá el clustering de países con K-means y se mostrarán los grupos.")
+    mostrar_clustering_pca(df)
 
 #Calidad de datos
 with tab5:
