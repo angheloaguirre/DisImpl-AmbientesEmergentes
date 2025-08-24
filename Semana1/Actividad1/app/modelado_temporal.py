@@ -3,6 +3,7 @@ import streamlit as st
 from datetime import timedelta
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
 import numpy as np
 
 # === 3.1 Generación de Series de Tiempo con Suavizado de 7 Días ===
@@ -123,3 +124,89 @@ def mostrar_series_tiempo(df):
 
     # Mostrar los gráficos
     st.pyplot(fig)
+# === 3.2 y 3.3 Modelado ETS y Validación ===
+def mostrar_modelado_forecast(df):
+    # Funciones de evaluación
+    def mae(y_true, y_pred):
+        return np.mean(np.abs(np.array(y_true)-np.array(y_pred)))
+    def mape(y_true, y_pred):
+        denom = np.where(np.array(y_true)==0,1.0,np.array(y_true))
+        return np.mean(np.abs((np.array(y_true)-np.array(y_pred))/denom))*100
+
+    # Simulación histórica
+    def simulate_history(last_value, days=60, daily_growth=0.03, noise=0.0, last_date=pd.Timestamp("2022-04-18")):
+        values_backward = [float(max(last_value,0))]
+        rng = np.random.default_rng(42)
+        for _ in range(days-1):
+            g = daily_growth
+            if noise>0: g = max(-0.5, g + rng.normal(0, noise*daily_growth))
+            prev = values_backward[-1]/(1+max(g,-0.9))
+            values_backward.append(max(prev,0.0))
+        values = list(reversed(values_backward))
+        for i in range(1,len(values)): values[i] = max(values[i],values[i-1])
+        start_date = pd.to_datetime(last_date) - pd.Timedelta(days=days-1)
+        return pd.Series(values,index=pd.date_range(start=start_date,periods=days,freq="D"))
+
+    st.subheader("🧪 Modelado y Proyección COVID-19")
+    last_date = df["Last_Update"].max().normalize()
+    daily = df[df["Last_Update"].dt.normalize()==last_date].groupby("Country_Region",as_index=False).sum()
+    country = st.selectbox("Selecciona un país", options=sorted(daily["Country_Region"].unique()))
+    row = daily[daily["Country_Region"]==country].iloc[0]
+    base_confirmed, base_deaths = int(row["Confirmed"]), int(row["Deaths"])
+
+    colA, colB = st.columns(2)
+    with colA: st.metric("Confirmados", f"{base_confirmed:,}")
+    with colB: st.metric("Muertes", f"{base_deaths:,}")
+
+    st.subheader("Parámetros para generar histórico simulado")
+    sim_days = st.slider("Días histórico", 30, 120, 60)
+    growth_confirmed = st.slider("Crecimiento Confirmados", 0.0, 0.08, 0.03, 0.005)
+    growth_deaths = st.slider("Crecimiento Muertes", 0.0, 0.08, 0.02, 0.005)
+    noise_level = st.slider("Ruido", 0.0, 0.5, 0.1, 0.01)
+
+    sim_confirmed = simulate_history(base_confirmed,days=sim_days,daily_growth=growth_confirmed,noise=noise_level,last_date=last_date)
+    sim_deaths = simulate_history(base_deaths,days=sim_days,daily_growth=growth_deaths,noise=noise_level,last_date=last_date)
+    hist_df = pd.DataFrame({"Confirmed":sim_confirmed,"Deaths":sim_deaths})
+
+    st.subheader("Histórico SIMULADO")
+    st.line_chart(hist_df)
+
+    # --- 3.2 Modelado ETS ---
+    st.subheader("3.2 Implementación del Modelo ETS para pronóstico")
+    st.markdown("Se aplica el modelo ETS para proyectar **casos** o **muertes** a 14 días.")
+    target = st.selectbox("Variable a pronosticar", ["Confirmed","Deaths"])
+    series = hist_df[target]
+    if len(series)<30: st.error("Se requieren al menos 30 días simulados para entrenar ETS."); st.stop()
+
+    h=14
+    train, test = series.iloc[:-h], series.iloc[-h:]
+    try:
+        model = ExponentialSmoothing(train, trend='add', seasonal=None)
+        fit = model.fit()
+        preds = fit.forecast(h)
+    except Exception as e: st.error(f"Error al ajustar ETS: {e}"); st.stop()
+
+    # --- 3.3 Validación ---
+    st.subheader("3.3 Validación del Modelo con Backtesting (MAE / MAPE)")
+    st.markdown("Se comparan las predicciones con los valores reales del test set para evaluar precisión.")
+    mae_val, mape_val = mae(test.values, preds.values), mape(test.values, preds.values)
+    c1, c2 = st.columns(2)
+    c1.metric("MAE", f"{mae_val:,.2f}")
+    c2.metric("MAPE", f"{mape_val:.2f}%")
+
+    fig1, ax1 = plt.subplots(figsize=(9,4.5))
+    ax1.plot(train.index, train.values,label="Entrenamiento")
+    ax1.plot(test.index, test.values,label="Real (test)")
+    ax1.plot(preds.index, preds.values,"--",label="Pronóstico (test)")
+    ax1.set_title(f"Backtesting ETS - {target}")
+    ax1.legend()
+    st.pyplot(fig1)
+
+    # --- Proyección a 14 días ---
+    st.subheader("Proyección a 14 días hacia adelante")
+    fit_full = ExponentialSmoothing(series, trend='add', seasonal=None).fit()
+    future_fc = fit_full.forecast(h)
+    future_df = pd.DataFrame({f"Forecast_{target}":future_fc})
+    st.line_chart(future_df)
+    st.dataframe(future_df.style.format("{:,.0f}"))
+    st.info("⚠️ Este análisis es ilustrativo, basado en un histórico simulado debido a que solo se cuenta con un día real.")
