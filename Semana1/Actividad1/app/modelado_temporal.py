@@ -26,6 +26,11 @@ def mostrar_series_tiempo(df):
     # Filtrar los datos por el país seleccionado
     df_country = df[df['Country_Region'] == country]
 
+    # Verificar si el DataFrame está vacío después de aplicar el filtro
+    if df_country.empty:
+        st.warning(f"No hay datos disponibles para el país seleccionado: {country}")
+        return  # Salir de la función si no hay datos para el país
+
     # Agrupar por fecha y sumar los casos confirmados
     df_country_grouped = df_country.groupby('Last_Update').agg({'Confirmed': 'sum', 'Deaths': 'sum'}).reset_index()
 
@@ -125,9 +130,8 @@ def mostrar_series_tiempo(df):
     # Mostrar los gráficos
     st.pyplot(fig)
 
-
 # === 3.2 y 3.3 Modelado ETS y Validación ===
-def mostrar_modelado_forecast(url):
+def mostrar_modelado_forecast(url, df):
     # Funciones de evaluación
     def mae(y_true, y_pred):
         return np.mean(np.abs(np.array(y_true)-np.array(y_pred)))
@@ -176,7 +180,7 @@ def mostrar_modelado_forecast(url):
 
     # UI: selección de país
     st.subheader("Datos del día base (18/04/2022)")
-    country = st.selectbox("Selecciona un país", options=sorted(daily["Country_Region"].unique()))
+    country = st.selectbox("Seleccione un país para ver sus datos suavizados:", df['Country_Region'].unique(), key="Country_Forecast")
 
     row = daily[daily["Country_Region"]==country].iloc[0]
     base_confirmed, base_deaths = int(row["Confirmed"]), int(row["Deaths"])
@@ -237,7 +241,8 @@ def mostrar_modelado_forecast(url):
     future_df = pd.DataFrame({f"Forecast_{target}":future_fc})
     st.line_chart(future_df)
     st.dataframe(future_df.style.format("{:,.0f}"))
-    st.info("⚠️ Este análisis es ilustrativo, basado en un histórico simulado debido a que solo se cuenta con un día real.")
+    st.info("⚠️ Este análisis es ilustrativo, basado en un histórico simulado debido a que solo se cuenta con un día real.")   
+
 
 # ==================================
 # === 3.4 Mostrar bandas de confianza en la gráfica de forecast ===
