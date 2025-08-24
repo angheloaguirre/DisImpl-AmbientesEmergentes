@@ -3,6 +3,7 @@ import streamlit as st
 from modelado_temporal import mostrar_series_tiempo, mostrar_modelado_forecast, bandas_confianza
 from vista_general import mostrar_topn_mapa
 from clustering_pca import mostrar_clustering_pca
+from calidad_datos import mostrar_calidad_datos
 
 # configuración básica
 st.set_page_config(page_title="COVID-19 JHU – Métricas y Análisis",layout="wide")
@@ -129,3 +130,4 @@ with tab4:
 with tab5:
     st.header("🔎 Calidad de datos")
     st.write("Aquí se reducirá la dimensionalidad con PCA y se graficarán los componentes principales.")
+    mostrar_calidad_datos(df)
