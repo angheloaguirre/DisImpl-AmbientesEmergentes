@@ -119,7 +119,7 @@ with tab3:
     # === 3.1 Generación de Series de Tiempo con Suavizado de 7 Días ===
     mostrar_series_tiempo(df)
     mostrar_modelado_forecast(url)
-    bandas_confianza(df)
+    #bandas_confianza(df)
 #Clusters
 with tab4:
     st.header("📊 Clustering y PCA")
