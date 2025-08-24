@@ -20,6 +20,8 @@ def load_data():
 
 # Cargar los datos
 df = load_data()
+df['Confirmed'] = df['Confirmed'].fillna(0).astype(int)
+df['Deaths'] = df['Deaths'].fillna(0).astype(int)
 
 # Sidebar con filtros
 st.sidebar.header("Filtros")
@@ -37,21 +39,13 @@ if "Last_Update" in df.columns:
 # Por países
 paises = df["Country_Region"].unique()
 paises_sel = st.sidebar.multiselect("Selecciona países", options=paises, default=paises[:5])
-
-# Asegúrarse de que hayan países seleccionados
-if len(paises_sel) == 0:
-    st.error("🚫 No hay datos disponibles para los filtros seleccionados.")
-    st.warning("⚠️ Por favor elija al menos 1 país para poder ver los datos.")
-    st.stop()  # Detiene la ejecución si no hay países seleccionados
-
-# Filtrar el DataFrame según los países seleccionados
 df = df[df["Country_Region"].isin(paises_sel)]
 
-# Si df está vacío después del filtrado, muestra un mensaje
+# Verificar si el DataFrame está vacío después de los filtros
 if df.empty:
     st.error("🚫 No hay datos disponibles para los filtros seleccionados.")
     st.warning("⚠️ Por favor elija al menos 1 país para poder ver los datos.")
-    st.stop()  # Detiene la ejecución si no hay datos disponibles
+    st.stop()  # Detener la ejecución si el DataFrame está vacío
 
 # Filtro por provincias/estados
 if "Province_State" in df.columns:
@@ -104,6 +98,33 @@ grouped = grouped.rename(columns={
 st.subheader("📈 KPIs Principales")
 st.dataframe(grouped)
 
+# ----------------------------
+# Narrativa automática
+# ----------------------------
+st.subheader("📝 Narrativa de los resultados")
+
+# Top 3 países con mayor CFR
+top_cfr = grouped.sort_values(by="CFR (%)", ascending=False).head(3)
+
+# Top 3 países con mayor Tasa de Incidencia
+top_incidence = grouped.sort_values(by="Tasa casos por 100k (Incident_Rate)", ascending=False).head(3)
+
+narrativa = f"""
+El análisis de los indicadores epidemiológicos muestra diferencias claras entre países:
+
+- Los países con **mayor letalidad (CFR)** son:  
+  🥇 {top_cfr.iloc[0]['Pais']} ({top_cfr.iloc[0]['CFR (%)']:.2f}%),  
+  🥈 {top_cfr.iloc[1]['Pais']} ({top_cfr.iloc[1]['CFR (%)']:.2f}%),  
+  🥉 {top_cfr.iloc[2]['Pais']} ({top_cfr.iloc[2]['CFR (%)']:.2f}%).  
+
+- En cuanto a la **tasa de incidencia por 100k habitantes**, los más afectados son:  
+  🥇 {top_incidence.iloc[0]['Pais']} ({top_incidence.iloc[0]['Tasa casos por 100k (Incident_Rate)']:.2f}),  
+  🥈 {top_incidence.iloc[1]['Pais']} ({top_incidence.iloc[1]['Tasa casos por 100k (Incident_Rate)']:.2f}),  
+  🥉 {top_incidence.iloc[2]['Pais']} ({top_incidence.iloc[2]['Tasa casos por 100k (Incident_Rate)']:.2f}).  
+
+🔎 Estos resultados permiten contrastar países con **alta propagación pero baja letalidad**, frente a otros con **menor número de casos pero mayor mortalidad relativa**. 
+"""
+st.write(narrativa)
 # Definición de las pestañas
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📂 Vista General",
@@ -131,10 +152,9 @@ with tab3:
     st.header("🧪 Modelado temporal")
     # === 3.1 Generación de Series de Tiempo con Suavizado de 7 Días ===
     mostrar_series_tiempo(df)
-    # === 3.2 y 3.3 Modelado ETS y Validación ===
-    mostrar_modelado_forecast(url, df)
-    # === 3.4 Mostrar bandas de confianza en la gráfica de forecast ===
-    bandas_confianza(df)
+    mostrar_modelado_forecast(url)
+
+    #bandas_confianza(df)
 #Clusters
 with tab4:
     st.header("📊 Clustering y PCA")
