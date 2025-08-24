@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-from modelado_temporal import mostrar_series_tiempo, mostrar_modelado_forecast
+from modelado_temporal import mostrar_series_tiempo, mostrar_modelado_forecast, bandas_confianza
 from vista_general import mostrar_topn_mapa
 from clustering_pca import mostrar_clustering_pca
 
@@ -117,7 +117,8 @@ with tab3:
     st.header("🧪 Modelado temporal")
     # === 3.1 Generación de Series de Tiempo con Suavizado de 7 Días ===
     mostrar_series_tiempo(df)
-    mostrar_modelado_forecast(url)  
+    mostrar_modelado_forecast(url)
+    bandas_confianza(df)
 #Clusters
 with tab4:
     st.header("📊 Clustering y PCA")
