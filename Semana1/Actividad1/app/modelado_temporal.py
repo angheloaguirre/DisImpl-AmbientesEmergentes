@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 from statsmodels.tsa.api import ExponentialSmoothing
 import numpy as np
+import io
 
 # === 3.1 Generación de Series de Tiempo con Suavizado de 7 Días ===
 def mostrar_series_tiempo(df):
@@ -130,6 +131,36 @@ def mostrar_series_tiempo(df):
     # Mostrar los gráficos
     st.pyplot(fig)
 
+
+    # === EXPORTACIÓN ===
+    # CSV
+    csv = df_display.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="⬇️ Descargar datos en CSV",
+        data=csv,
+        file_name=f"series_tiempo_{country}.csv",
+        mime="text/csv"
+    )
+
+    # PNG
+    buf_png = io.BytesIO()
+    fig.savefig(buf_png, format="png")
+    st.download_button(
+        label="⬇️ Descargar gráfico en PNG",
+        data=buf_png.getvalue(),
+        file_name=f"series_tiempo_{country}.png",
+        mime="image/png"
+    )
+
+    # SVG
+    buf_svg = io.BytesIO()
+    fig.savefig(buf_svg, format="svg")
+    st.download_button(
+        label="⬇️ Descargar gráfico en SVG",
+        data=buf_svg.getvalue(),
+        file_name=f"series_tiempo_{country}.svg",
+        mime="image/svg+xml"
+    )
 # === 3.2 y 3.3 Modelado ETS y Validación ===
 def mostrar_modelado_forecast(url, df):
     # Funciones de evaluación
@@ -201,6 +232,11 @@ def mostrar_modelado_forecast(url, df):
 
     st.subheader("Histórico SIMULADO")
     st.line_chart(hist_df)
+        # Botón para exportar histórico simulado
+    st.download_button("📥 Descargar histórico simulado (CSV)",
+                       data=hist_df.to_csv(index=True).encode("utf-8"),
+                       file_name="historico_simulado.csv",
+                       mime="text/csv")
 
     # --- 3.2 Modelado ETS ---
     st.subheader("3.2 Implementación del Modelo ETS para pronóstico")
@@ -233,6 +269,12 @@ def mostrar_modelado_forecast(url, df):
     ax1.legend()
     plt.xticks(rotation=45)
     st.pyplot(fig1)
+    # Exportar gráfico de backtesting en PNG y SVG
+    buf_png, buf_svg = io.BytesIO(), io.BytesIO()
+    fig1.savefig(buf_png, format="png", bbox_inches="tight")
+    fig1.savefig(buf_svg, format="svg", bbox_inches="tight")
+    st.download_button("📸 Descargar gráfico backtesting (PNG)", data=buf_png.getvalue(), file_name="backtesting.png", mime="image/png")
+    st.download_button("📸 Descargar gráfico backtesting (SVG)", data=buf_svg.getvalue(), file_name="backtesting.svg", mime="image/svg+xml")
 
     # --- Proyección a 14 días ---
     st.subheader("Proyección a 14 días hacia adelante")
@@ -243,6 +285,27 @@ def mostrar_modelado_forecast(url, df):
     st.dataframe(future_df.style.format("{:,.0f}"))
     st.info("⚠️ Este análisis es ilustrativo, basado en un histórico simulado debido a que solo se cuenta con un día real.")   
 
+
+    # Botón para exportar proyección
+    st.download_button("📥 Descargar proyección (CSV)",
+                       data=future_df.to_csv(index=True).encode("utf-8"),
+                       file_name="proyeccion.csv",
+                       mime="text/csv")
+
+    # Exportar gráfico de proyección en PNG y SVG
+    fig2, ax2 = plt.subplots(figsize=(9,4.5))
+    ax2.plot(series.index, series.values, label="Histórico")
+    ax2.plot(future_df.index, future_df.values, "--", label="Pronóstico 14d")
+    ax2.set_title(f"Proyección ETS - {target}")
+    ax2.legend()
+    plt.xticks(rotation=45)
+    st.pyplot(fig2)
+
+    buf_png2, buf_svg2 = io.BytesIO(), io.BytesIO()
+    fig2.savefig(buf_png2, format="png", bbox_inches="tight")
+    fig2.savefig(buf_svg2, format="svg", bbox_inches="tight")
+    st.download_button("📸 Descargar gráfico proyección (PNG)", data=buf_png2.getvalue(), file_name="proyeccion.png", mime="image/png")
+    st.download_button("📸 Descargar gráfico proyección (SVG)", data=buf_svg2.getvalue(), file_name="proyeccion.svg", mime="image/svg+xml")
 
 # ==================================
 # === 3.4 Mostrar bandas de confianza en la gráfica de forecast ===
@@ -320,3 +383,4 @@ def bandas_confianza(df):
     # Mostrar los datos proyectados con formato
     st.dataframe(future_df.style.format("{:,.0f}"))
     return
+

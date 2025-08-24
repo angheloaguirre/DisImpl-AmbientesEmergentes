@@ -134,7 +134,7 @@ with tab3:
     # === 3.2 y 3.3 Modelado ETS y Validación ===
     mostrar_modelado_forecast(url, df)
     # === 3.4 Mostrar bandas de confianza en la gráfica de forecast ===
-    #bandas_confianza(df)
+    bandas_confianza(df)
 #Clusters
 with tab4:
     st.header("📊 Clustering y PCA")

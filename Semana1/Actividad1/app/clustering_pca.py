@@ -6,7 +6,6 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 import plotly.express as px
 
-
 # ==============================
 # Utilidad: preparar métricas por país
 # ==============================
@@ -204,7 +203,14 @@ def mostrar_clustering_pca(df: pd.DataFrame):
         st.info("**Nota:** No hay múltiples fechas en el dataset cargado, por lo que "
                 "el crecimiento 7d se fijó en 0 para todos los países. Si cargas múltiples "
                 "días, se calculará automáticamente por país.")
-
+    # Descargar resultados como CSV
+    csv_clusters = clustered.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="⬇️ Descargar resultados de clustering (CSV)",
+        data=csv_clusters,
+        file_name="clustering_resultados.csv",
+        mime="text/csv"
+    )
     # ==================== 4.2
     st.markdown("#### 4.2 PCA (2 componentes) y visualización")
     df_pca, pca, loadings = _pca_42(clustered, scaler, random_state=random_state)
@@ -229,12 +235,54 @@ def mostrar_clustering_pca(df: pd.DataFrame):
                f"PC2 = {pca.explained_variance_ratio_[1]:.2%}")
     with st.expander("Ver *loadings* de PCA (contribución de cada variable)"):
         st.dataframe(loadings.style.format("{:.3f}"))
+    # Guardar gráfico como HTML (funciona en cloud)
+    html_file = "pca_plot.html"
+    fig.write_html(html_file)
 
+    # Botón de descarga HTML
+    with open(html_file, "r", encoding="utf-8") as f:
+        html_bytes = f.read().encode("utf-8")
+
+    st.download_button(
+        label="⬇️ Descargar gráfico PCA (HTML interactivo)",
+        data=html_bytes,
+        file_name="pca_grafico.html",
+        mime="text/html"
+    )
+    # ----- Descargar resultados PCA en CSV
+    csv_pca = df_pca.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="⬇️ Descargar resultados PCA (CSV)",
+        data=csv_pca,
+        file_name="pca_resultados.csv",
+        mime="text/csv"
+    )
     # ==================== 4.3
     st.markdown("#### 4.3 Perfiles e interpretación de clústeres")
     profile, interpretations = _interpretar_43(df_pca)
     st.dataframe(profile.style.format("{:.2f}"))
     st.markdown("\n".join(interpretations))
+    # Botón para descargar perfiles como CSV
+    csv_profile = profile.reset_index().to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="⬇️ Descargar perfiles por cluster (CSV)",
+        data=csv_profile,
+        file_name="perfiles_clusters.csv",
+        mime="text/csv"
+    )
+
+    # Botón para descargar interpretaciones como CSV
+    df_interpret = pd.DataFrame({
+        "Cluster": range(len(interpretations)),
+        "Interpretacion": interpretations
+    })
+    csv_interpret = df_interpret.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="⬇️ Descargar interpretaciones (CSV)",
+        data=csv_interpret,
+        file_name="interpretaciones_clusters.csv",
+        mime="text/csv"
+    )
 
     # Devuelve objetos útiles por si se requiere en tests o descargas
     return df_pca, profile, loadings
