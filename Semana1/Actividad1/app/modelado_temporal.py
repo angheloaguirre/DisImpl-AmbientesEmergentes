@@ -25,6 +25,11 @@ def mostrar_series_tiempo(df):
     # Filtrar los datos por el país seleccionado
     df_country = df[df['Country_Region'] == country]
 
+    # Verificar si el DataFrame está vacío después de aplicar el filtro
+    if df_country.empty:
+        st.warning(f"No hay datos disponibles para el país seleccionado: {country}")
+        return  # Salir de la función si no hay datos para el país
+
     # Agrupar por fecha y sumar los casos confirmados
     df_country_grouped = df_country.groupby('Last_Update').agg({'Confirmed': 'sum', 'Deaths': 'sum'}).reset_index()
 
