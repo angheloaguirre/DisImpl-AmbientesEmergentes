@@ -36,4 +36,4 @@ Integrantes:
   </tr>
 </table>
 <br>
-<p>Enlace de la solución (hecha con Streamlit): <a href="https://disimpl-ambientesemergentes-cqkqnr4nthpwhuunnqeyca.streamlit.app/">¡Visitar la solución!</a></p>
+<p>Enlace de la solución (hecha con Streamlit): <a href="https://disimpl-ambientesemergentes-cqkqnr4nthpwhuunnqeyca.streamlit.app/">¡Visitar la solución 😉!</a></p>
