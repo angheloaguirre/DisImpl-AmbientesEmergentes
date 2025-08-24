@@ -40,6 +40,11 @@ paises = df["Country_Region"].unique()
 paises_sel = st.sidebar.multiselect("Selecciona países", options=paises, default=paises[:5])
 df = df[df["Country_Region"].isin(paises_sel)]
 
+# Verificar si el DataFrame está vacío después de los filtros
+if df.empty:
+    st.error("No hay datos disponibles para los filtros seleccionados.")
+    st.stop()  # Detener la ejecución si el DataFrame está vacío
+
 # Filtro por provincias/estados
 if "Province_State" in df.columns:
     provincias = df["Province_State"].dropna().unique()
@@ -66,15 +71,18 @@ grouped = df.groupby("Country_Region", as_index=False).agg({
     "Deaths": "sum"
 })
 
+# Verificar si el DataFrame 'grouped' tiene datos para evitar errores en cálculos
+if grouped.empty:
+    st.error("🚫 No hay datos disponibles para los filtros seleccionados.")
+    st.warning("⚠️ Por favor elija al menos 1 país para poder ver los datos.")
+    st.stop()  # Detener la ejecución si el DataFrame 'grouped' está vacío
 
 # Calcular CFR (muertes / confirmados)
 grouped["CFR"] = (grouped["Deaths"] / grouped["Confirmed"]) * 100
 
-
-#calcular un promedio por país:
+# Calcular un promedio por país:
 incident_rate = df.groupby("Country_Region")["Incident_Rate"].mean().reset_index()
 grouped = grouped.merge(incident_rate, on="Country_Region")
-
 
 # Renombrar columnas
 grouped = grouped.rename(columns={
@@ -84,7 +92,6 @@ grouped = grouped.rename(columns={
     "CFR": "CFR (%)",
     "Incident_Rate": "Tasa casos por 100k (Incident_Rate)"
 })
-
 
 # Mostrar resultados
 st.subheader("📈 KPIs Principales")
