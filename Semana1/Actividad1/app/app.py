@@ -10,9 +10,9 @@ st.title("COVID-19 (JHU) Dashboard")
 st.caption("Fuente: Johns Hopkins CSSE – Daily Report 2022-04-18")
 
 # Cargar los datos
+url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/04-18-2022.csv"
 @st.cache_data
 def load_data():
-    url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/04-18-2022.csv"
     df = pd.read_csv(url)
     df['Last_Update'] = pd.to_datetime(df['Last_Update'])  # Convertir a tipo datetime
     return df
@@ -117,7 +117,7 @@ with tab3:
     st.header("🧪 Modelado temporal")
     # === 3.1 Generación de Series de Tiempo con Suavizado de 7 Días ===
     mostrar_series_tiempo(df)
-    mostrar_modelado_forecast(df)  
+    mostrar_modelado_forecast(url)  
 #Clusters
 with tab4:
     st.header("📊 Clustering y PCA")

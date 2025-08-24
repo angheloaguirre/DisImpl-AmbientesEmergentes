@@ -124,8 +124,10 @@ def mostrar_series_tiempo(df):
 
     # Mostrar los gráficos
     st.pyplot(fig)
+
+
 # === 3.2 y 3.3 Modelado ETS y Validación ===
-def mostrar_modelado_forecast(df):
+def mostrar_modelado_forecast(url):
     # Funciones de evaluación
     def mae(y_true, y_pred):
         return np.mean(np.abs(np.array(y_true)-np.array(y_pred)))
@@ -148,9 +150,34 @@ def mostrar_modelado_forecast(df):
         return pd.Series(values,index=pd.date_range(start=start_date,periods=days,freq="D"))
 
     st.subheader("🧪 Modelado y Proyección COVID-19")
-    last_date = df["Last_Update"].max().normalize()
-    daily = df[df["Last_Update"].dt.normalize()==last_date].groupby("Country_Region",as_index=False).sum()
+
+    try:
+        raw = pd.read_csv(url)
+    except FileNotFoundError:
+        st.error("No se encontró la url deseada. ¡Revisar bien la dirección url!")
+        st.stop()
+
+    # Limpieza básica
+    raw["Last_Update"] = pd.to_datetime(raw["Last_Update"], errors="coerce")
+    raw = raw.dropna(subset=["Last_Update"])
+    if raw.empty:
+        st.error("El archivo se cargó pero no tiene fechas válidas en 'Last_Update'.")
+        st.stop()
+
+    last_date = raw["Last_Update"].max().normalize()
+    daily = (raw.loc[raw["Last_Update"].dt.normalize() == last_date,
+                    ["Country_Region", "Confirmed", "Deaths"]]
+                .groupby("Country_Region", as_index=False)
+                .sum())
+
+    if daily.empty:
+        st.error("No se encontraron registros para la fecha del archivo.")
+        st.stop()
+
+    # UI: selección de país
+    st.subheader("Datos del día base (18/04/2022)")
     country = st.selectbox("Selecciona un país", options=sorted(daily["Country_Region"].unique()))
+
     row = daily[daily["Country_Region"]==country].iloc[0]
     base_confirmed, base_deaths = int(row["Confirmed"]), int(row["Deaths"])
 
@@ -209,4 +236,11 @@ def mostrar_modelado_forecast(df):
     future_df = pd.DataFrame({f"Forecast_{target}":future_fc})
     st.line_chart(future_df)
     st.dataframe(future_df.style.format("{:,.0f}"))
-    st.info("⚠️ Este análisis es ilustrativo, basado en un histórico simulado debido a que solo se cuenta con un día real.")
+    st.info("⚠️ Este análisis es ilustrativo, basado en un histórico simulado debido a que solo se cuenta con un día real.")    
+
+# ==================================
+# === 3.4 Mostrar bandas de confianza en la gráfica de forecast ===
+# ==================================
+def bandas_confianza(df = df):
+    #df
+    return
