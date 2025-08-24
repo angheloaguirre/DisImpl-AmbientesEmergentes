@@ -241,6 +241,6 @@ def mostrar_modelado_forecast(url):
 # ==================================
 # === 3.4 Mostrar bandas de confianza en la gráfica de forecast ===
 # ==================================
-def bandas_confianza(df = df):
+def bandas_confianza(df):
     #df
     return
