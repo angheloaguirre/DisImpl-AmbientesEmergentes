@@ -42,7 +42,8 @@ df = df[df["Country_Region"].isin(paises_sel)]
 
 # Verificar si el DataFrame está vacío después de los filtros
 if df.empty:
-    st.error("No hay datos disponibles para los filtros seleccionados.")
+    st.error("🚫 No hay datos disponibles para los filtros seleccionados.")
+    st.warning("⚠️ Por favor elija al menos 1 país para poder ver los datos.")
     st.stop()  # Detener la ejecución si el DataFrame está vacío
 
 # Filtro por provincias/estados
@@ -74,7 +75,6 @@ grouped = df.groupby("Country_Region", as_index=False).agg({
 # Verificar si el DataFrame 'grouped' tiene datos para evitar errores en cálculos
 if grouped.empty:
     st.error("🚫 No hay datos disponibles para los filtros seleccionados.")
-    st.warning("⚠️ Por favor elija al menos 1 país para poder ver los datos.")
     st.stop()  # Detener la ejecución si el DataFrame 'grouped' está vacío
 
 # Calcular CFR (muertes / confirmados)
