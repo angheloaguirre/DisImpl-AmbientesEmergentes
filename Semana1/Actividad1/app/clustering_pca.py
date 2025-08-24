@@ -191,6 +191,21 @@ def mostrar_clustering_pca(df: pd.DataFrame):
     k = st.sidebar.slider("Número de clústeres (k)", min_value=2, max_value=8, value=4, step=1)
     random_state = st.sidebar.number_input("Random state", min_value=0, value=42, step=1)
 
+    # ---- Validación: k no puede ser mayor al número de países seleccionados
+    n_paises_sel = int(data["Pais"].nunique())
+    if k > n_paises_sel:
+        st.error(f"Seleccionaste k = {k}, pero solo hay {n_paises_sel} países seleccionados. "
+                f"Selecciona al menos {k} países o reduce k.")
+        st.stop()  # detiene el render de esta pestaña para evitar el error
+
+    # (opcional, por si alguna métrica viene NaN y reduce los casos válidos)
+    _feats = data[["Tasa por 100k (Incident_Rate)", "CFR", "Growth_7d"]]
+    n_valid = int(_feats.dropna().shape[0])
+    if k > n_valid:
+        st.error(f"Seleccionaste k = {k}, pero solo hay {n_valid} países con datos válidos "
+                f"(algunas métricas están vacías). Amplía filtros o reduce k.")
+        st.stop()
+
     # ==================== 4.1
     st.markdown("#### 4.1 Clustering por país (K-means)")
     clustered, km, scaler = _clustering_41(data, k=k, random_state=random_state)
