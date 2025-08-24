@@ -3,7 +3,7 @@ import streamlit as st
 from datetime import timedelta
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
-from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from statsmodels.tsa.api import ExponentialSmoothing
 import numpy as np
 
 # === 3.1 Generación de Series de Tiempo con Suavizado de 7 Días ===
@@ -237,11 +237,81 @@ def mostrar_modelado_forecast(url):
     future_df = pd.DataFrame({f"Forecast_{target}":future_fc})
     st.line_chart(future_df)
     st.dataframe(future_df.style.format("{:,.0f}"))
-    st.info("⚠️ Este análisis es ilustrativo, basado en un histórico simulado debido a que solo se cuenta con un día real.")    
+    st.info("⚠️ Este análisis es ilustrativo, basado en un histórico simulado debido a que solo se cuenta con un día real.")
 
 # ==================================
 # === 3.4 Mostrar bandas de confianza en la gráfica de forecast ===
 # ==================================
 def bandas_confianza(df):
-    #df
+   # Definir el horizonte de predicción (1 a 30 días)
+    h = st.slider("Elegir el horizonte de predicción (en días):", 1, 30, 14)
+
+    # --- Proyección a h días --- 
+    st.subheader(f"Proyección a {h} días hacia adelante")
+
+    # Selección de la variable a pronosticar con un key único
+    target = st.selectbox("Variable a pronosticar", ["Confirmed", "Deaths"], key="target_selectbox")
+
+    # Extraemos solo los últimos 30 días de datos para la variable seleccionada
+    series = df[target].tail(30)  # Solo toma los últimos 30 días de la serie
+
+    # Ajuste completo del modelo ETS con la serie seleccionada
+    fit_full = ExponentialSmoothing(series, trend='add', seasonal=None).fit()
+
+    # Realiza la proyección
+    future_fc = fit_full.forecast(h)
+
+    forecast_error = np.std(fit_full.resid)
+
+    # Cambiar el intervalo de confianza al 99% (z-score para 99% es 2.576)
+    z_score = 2.576
+    upper_bound = future_fc + z_score * forecast_error
+    lower_bound = future_fc - z_score * forecast_error
+
+    # **Asegurarse de que no haya valores negativos solo en ciertas condiciones (como "Confirmed")**
+    if target == "Confirmed":
+        future_fc = np.maximum(future_fc, 0)  # Forzar cero solo si es negativo
+        upper_bound = np.maximum(upper_bound, 0)
+        lower_bound = np.maximum(lower_bound, 0)
+
+    # Crea la proyección futura con las bandas de confianza
+    future_df = pd.DataFrame({
+        f"Forecast_{target}": future_fc,
+        f"Upper_{target}": upper_bound,
+        f"Lower_{target}": lower_bound
+    })
+
+    # **Generar fechas consecutivas a partir de la última fecha en df["Last_Update"]**
+    last_date = pd.to_datetime(df["Last_Update"][0])  # Obtener la última fecha real del DataFrame
+    future_dates = [last_date + timedelta(days=i+1) for i in range(h)]  # Generar fechas consecutivas
+
+    # Asignar las fechas al índice del DataFrame
+    future_df.index = future_dates
+
+    # Graficar la proyección con las bandas de confianza
+    fig2, ax2 = plt.subplots(figsize=(9, 4.5))
+
+    # Graficar el pronóstico
+    ax2.plot(future_df.index, future_df[f"Forecast_{target}"], label="Pronóstico", color='blue')
+
+    # Graficar la banda de confianza
+    ax2.fill_between(future_df.index, future_df[f"Lower_{target}"], future_df[f"Upper_{target}"], color='orange', alpha=0.3, label="Banda de Confianza 99%")
+
+    ax2.set_title(f"Proyección a {h} días con Bandas de Confianza - {target}")
+    
+    # Mejorar la visualización de los ejes
+    ax2.set_xlabel('Fecha')
+    ax2.set_ylabel('Valor de Confirmados (miles)')
+    
+    # Formato de notación en miles en el eje Y
+    ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, loc: "{:,}K".format(int(x / 1000))))
+    
+    ax2.tick_params(axis='x', rotation=45)  # Rotar las etiquetas del eje X
+    ax2.tick_params(axis='y', labelsize=10)  # Ajustar el tamaño de las etiquetas del eje Y
+    
+    ax2.legend(loc='upper left')
+    st.pyplot(fig2)
+
+    # Mostrar los datos proyectados con formato
+    st.dataframe(future_df.style.format("{:,.0f}"))
     return
