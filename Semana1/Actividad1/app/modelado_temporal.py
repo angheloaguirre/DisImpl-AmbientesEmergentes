@@ -6,6 +6,7 @@ from matplotlib.ticker import FuncFormatter
 from statsmodels.tsa.api import ExponentialSmoothing
 import numpy as np
 import io
+
 # === 3.1 Generación de Series de Tiempo con Suavizado de 7 Días ===
 def mostrar_series_tiempo(df):
     # Título y descripción
@@ -358,3 +359,52 @@ def bandas_confianza(df):
     ax.set_title(f"Proyección con Bandas de Confianza: {country} ({variable})")
     ax.legend()
     st.pyplot(fig)
+
+    # Crear CSV
+    csv_data = pd.DataFrame({
+        'Fecha': future_dates,
+        'Forecast': forecast,
+        'Lower Bound': lower,
+        'Upper Bound': upper
+    })
+    csv_buffer = io.StringIO()
+    csv_data.to_csv(csv_buffer, index=False)
+    csv_buffer.seek(0)
+    
+    # Botones de descarga
+    st.download_button(
+        label="⬇️ Descargar datos en CSV",
+        data=csv_buffer.getvalue(),
+        file_name=f"proyeccion_{country}_{variable}_forecast.csv",
+        mime="text/csv"
+    )
+
+    # Botón para descargar gráfico en formato PNG
+    st.download_button(
+        label="📸 Descargar gráfico en PNG",
+        data=fig_to_png(fig),
+        file_name=f"proyeccion_{country}_{variable}_forecast.png",
+        mime="image/png"
+    )
+
+    # Botón para descargar gráfico en formato SVG
+    st.download_button(
+        label="📸 Descargar gráfico en SVG",
+        data=fig_to_svg(fig),
+        file_name=f"proyeccion_{country}_{variable}_forecast.svg",
+        mime="image/svg+xml"
+    )
+
+def fig_to_png(fig):
+    # Convertir el gráfico a PNG
+    img_stream = io.BytesIO()
+    fig.savefig(img_stream, format='png')
+    img_stream.seek(0)
+    return img_stream
+
+def fig_to_svg(fig):
+    # Convertir el gráfico a SVG
+    img_stream = io.BytesIO()
+    fig.savefig(img_stream, format='svg')
+    img_stream.seek(0)
+    return img_stream
