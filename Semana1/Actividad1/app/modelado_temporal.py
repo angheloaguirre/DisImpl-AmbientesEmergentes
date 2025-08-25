@@ -311,76 +311,51 @@ def mostrar_modelado_forecast(url, df):
 # === 3.4 Mostrar bandas de confianza en la gráfica de forecast ===
 # ==================================
 def bandas_confianza(df):
-   # Definir el horizonte de predicción (1 a 30 días)
-    h = st.slider("Elegir el horizonte de predicción (en días):", 1, 30, 14)
-
-    # --- Proyección a h días --- 
-    st.subheader(f"Proyección a {h} días hacia adelante")
-
-    # Selección de la variable a pronosticar con un key único
-    target = st.selectbox("Variable a pronosticar", ["Confirmed", "Deaths"], key="target_selectbox")
-
-    # Extraemos solo los últimos 30 días de datos para la variable seleccionada
-    series = df[target].tail(30)  # Solo toma los últimos 30 días de la serie
-
-    # Ajuste completo del modelo ETS con la serie seleccionada
-    fit_full = ExponentialSmoothing(series, trend='add', seasonal=None).fit()
-
-    # Realiza la proyección
-    future_fc = fit_full.forecast(h)
-
-    forecast_error = np.std(fit_full.resid)
-
-    # Cambiar el intervalo de confianza al 99% (z-score para 99% es 2.576)
-    z_score = 2.576
-    upper_bound = future_fc + z_score * forecast_error
-    lower_bound = future_fc - z_score * forecast_error
-
-    # **Asegurarse de que no haya valores negativos solo en ciertas condiciones (como "Confirmed")**
-    if target == "Confirmed":
-        future_fc = np.maximum(future_fc, 0)  # Forzar cero solo si es negativo
-        upper_bound = np.maximum(upper_bound, 0)
-        lower_bound = np.maximum(lower_bound, 0)
-
-    # Crea la proyección futura con las bandas de confianza
-    future_df = pd.DataFrame({
-        f"Forecast_{target}": future_fc,
-        f"Upper_{target}": upper_bound,
-        f"Lower_{target}": lower_bound
-    })
-
-    # **Generar fechas consecutivas a partir de la última fecha en df["Last_Update"]**
-    last_date = pd.to_datetime(df["Last_Update"]).max()  # Obtener la última fecha real del DataFrame
-    future_dates = [last_date + timedelta(days=i+1) for i in range(h)]  # Generar fechas consecutivas
-
-    # Asignar las fechas al índice del DataFrame
-    future_df.index = future_dates
-
-    # Graficar la proyección con las bandas de confianza
-    fig2, ax2 = plt.subplots(figsize=(9, 4.5))
-
-    # Graficar el pronóstico
-    ax2.plot(future_df.index, future_df[f"Forecast_{target}"], label="Pronóstico", color='blue')
-
-    # Graficar la banda de confianza
-    ax2.fill_between(future_df.index, future_df[f"Lower_{target}"], future_df[f"Upper_{target}"], color='orange', alpha=0.3, label="Banda de Confianza 99%")
-
-    ax2.set_title(f"Proyección a {h} días con Bandas de Confianza - {target}")
+    st.subheader("⏳ 3.4 Mostrar Bandas de Confianza")
     
-    # Mejorar la visualización de los ejes
-    ax2.set_xlabel('Fecha')
-    ax2.set_ylabel('Valor de Confirmados (miles)')
-    
-    # Formato de notación en miles en el eje Y
-    ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, loc: "{:,}K".format(int(x / 1000))))
-    
-    ax2.tick_params(axis='x', rotation=45)  # Rotar las etiquetas del eje X
-    ax2.tick_params(axis='y', labelsize=10)  # Ajustar el tamaño de las etiquetas del eje Y
-    
-    ax2.legend(loc='upper left')
-    st.pyplot(fig2)
+    # Seleccionar país y variable
+    country = st.selectbox("Seleccione un país para pronóstico", df['Country_Region'].unique(), key="Country_Bandas")
+    variable = st.selectbox("Variable a pronosticar", ["Confirmed", "Deaths"], key="target_selectbox")
 
-    # Mostrar los datos proyectados con formato
-    st.dataframe(future_df.style.format("{:,.0f}"))
-    return
+    # Filtrar datos del país
+    df_country = df[df['Country_Region'] == country].copy()
+    df_country = df_country.sort_values('Last_Update')
+    
+    if df_country.empty:
+        st.warning("No hay datos disponibles para el país seleccionado.")
+        return
 
+    series = df_country[variable].values
+
+    # Horizonte de predicción
+    h = st.slider("Días a predecir", 1, 30, 14)
+    
+    # Calcular media y desviación estándar del crecimiento
+    diffs = np.diff(series)
+    growth_mean = np.mean(diffs)
+    growth_std = np.std(diffs)
+
+    # Proyección con bandas de confianza
+    forecast = []
+    lower = []
+    upper = []
+
+    current = series[-1]
+    for _ in range(h):
+        next_val = current + growth_mean
+        forecast.append(next_val)
+        lower.append(next_val - 1.96 * growth_std)
+        upper.append(next_val + 1.96 * growth_std)
+        current = next_val
+
+    # Fechas futuras
+    future_dates = pd.date_range(start=df_country['Last_Update'].max() + pd.Timedelta(days=1), periods=h)
+
+    # Gráfico
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(df_country['Last_Update'], series, label="Histórico", color="blue")
+    ax.plot(future_dates, forecast, label="Forecast", color="green")
+    ax.fill_between(future_dates, lower, upper, color="green", alpha=0.2, label="95% Confianza")
+    ax.set_title(f"Proyección con Bandas de Confianza: {country} ({variable})")
+    ax.legend()
+    st.pyplot(fig)
