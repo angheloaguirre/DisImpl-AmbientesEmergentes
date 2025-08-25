@@ -6,7 +6,7 @@ from clustering_pca import mostrar_clustering_pca
 from calidad_datos import mostrar_calidad_datos
 from estadistica_avanzada import mostrar_estadistica_avanzada
 
-# Credenciales simples (ejemplo, no usar en producción)
+# Credenciales
 USERS = {
     "pepe123": "123456",
     "admin": "admin"
@@ -37,7 +37,7 @@ if not st.session_state.logged_in:
 else:
     # configuración básica
     st.set_page_config(page_title="COVID-19 JHU – Métricas y Análisis",layout="wide")
-    colImg, colHeader = st.columns([1, 11])  # adjust proportions
+    colImg, colHeader = st.columns([1, 11]) 
     with colImg:
         st.image("LogoEpiWatch.png", width=80)
     with colHeader:
