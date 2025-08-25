@@ -16,13 +16,13 @@
 
 <h3>Archivos descargables:</h3>
 <ul>
-  <li><a href="ruta/series_tiempo_Afghanistan.png">Gráfico de Proyección a 7 días</a></li>
-  <li><a href="ruta/proyeccion_Spain_Confirmed_forecast.png">Gráfico de Proyección a 14 días</a></li>
+  <li><a href="graficas/series_tiempo_Afghanistan.png">Gráfico de Proyección a 7 días</a></li>
+  <li><a href="graficas/proyeccion_Spain_Confirmed_forecast.png">Gráfico de Proyección a 14 días</a></li>
 </ul>
 
 <h3>Visualización de Gráficos:</h3>
-<img src="ruta/series_tiempo_Afghanistan.png" alt="Proyección a 7 días" width="600">
-<img src="ruta/proyeccion_Spain_Confirmed_forecast.png" alt="Proyección a 14 días" width="600">
+<img src="graficas/series_tiempo_Afghanistan.png" alt="Proyección a 7 días" width="600">
+<img src="graficas/proyeccion_Spain_Confirmed_forecast.png" alt="Proyección a 14 días" width="600">
 
 <h2>2. Residuos del Modelo ETS</h2>
 
@@ -36,11 +36,11 @@
 
 <h3>Archivos descargables:</h3>
 <ul>
-  <li><a href="ruta/backtesting.png">Gráfico de Residuos del Modelo ETS</a></li>
+  <li><a graficas="ruta/backtesting.png">Gráfico de Residuos del Modelo ETS</a></li>
 </ul>
 
 <h3>Visualización de Gráfico:</h3>
-<img src="ruta/backtesting.png" alt="Residuos del Modelo ETS" width="600">
+<img src="graficas/backtesting.png" alt="Residuos del Modelo ETS" width="600">
 
 <h2>3. Estadísticas del Pronóstico</h2>
 
@@ -55,10 +55,10 @@
 
 <h3>Archivos adicionales:</h3>
 <ul>
-  <li><a href="ruta/grafico_control_confirmados.png">Gráfico de Control de Confirmados</a></li>
-  <li><a href="ruta/grafico_control_mortalidad.png">Gráfico de Control de Mortalidad</a></li>
+  <li><a href="graficas/grafico_control_confirmados.png">Gráfico de Control de Confirmados</a></li>
+  <li><a href="graficas/grafico_control_mortalidad.png">Gráfico de Control de Mortalidad</a></li>
 </ul>
 
 <h3>Visualización de Gráficos:</h3>
-<img src="ruta/grafico_control_confirmados.png" alt="Control de Confirmados" width="600">
-<img src="ruta/grafico_control_mortalidad.png" alt="Control de Mortalidad" width="600">
+<img src="graficas/grafico_control_confirmados.png" alt="Control de Confirmados" width="600">
+<img src="graficas/grafico_control_mortalidad.png" alt="Control de Mortalidad" width="600">
