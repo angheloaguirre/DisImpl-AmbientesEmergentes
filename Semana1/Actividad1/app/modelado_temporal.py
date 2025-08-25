@@ -350,7 +350,7 @@ def bandas_confianza(df):
     })
 
     # **Generar fechas consecutivas a partir de la última fecha en df["Last_Update"]**
-    last_date = pd.to_datetime(df["Last_Update"][0])  # Obtener la última fecha real del DataFrame
+    last_date = pd.to_datetime(df["Last_Update"]).max()  # Obtener la última fecha real del DataFrame
     future_dates = [last_date + timedelta(days=i+1) for i in range(h)]  # Generar fechas consecutivas
 
     # Asignar las fechas al índice del DataFrame
