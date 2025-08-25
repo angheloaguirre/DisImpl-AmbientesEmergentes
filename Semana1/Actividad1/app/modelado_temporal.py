@@ -96,7 +96,7 @@ def mostrar_series_tiempo(df):
     # --- construir series con índice de fechas ---
     idx = pd.to_datetime(date_list, dayfirst=True)
     confirmed_sr = pd.Series(confirmed_values, index=idx)
-    deaths_sr = pd.Series(deaths_values, index=idx)
+    deaths_sr = pd.Series(deaths_values, index=idx)  
 
     # --- Suavizado 7 días (rolling mean) ---
     confirmed_ma7 = confirmed_sr.rolling(window=7, min_periods=1, center=True).mean()
