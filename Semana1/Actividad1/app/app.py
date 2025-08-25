@@ -39,7 +39,27 @@ if "Last_Update" in df.columns:
 
 # Por países
 paises = df["Country_Region"].unique()
-paises_sel = st.sidebar.multiselect("Selecciona países", options=paises, default=paises[:5])
+
+st.sidebar.markdown(
+    """
+    <style>
+    div[data-baseweb="select"] > div {
+        max-height: 200px;   /* altura máxima */
+        overflow-y: auto;  /* scroll vertical */
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Checkbox para seleccionar todos
+select_all = st.sidebar.checkbox("Seleccionar todos los países", value=False)
+
+if select_all:
+    paises_sel = st.sidebar.multiselect("Selecciona países", options=paises, default=paises)
+else:
+    paises_sel = st.sidebar.multiselect("Selecciona países", options=paises, default=paises[:5])
+
 df = df[df["Country_Region"].isin(paises_sel)]
 
 # Verificar si el DataFrame está vacío después de los filtros
@@ -104,28 +124,32 @@ st.dataframe(grouped)
 # ----------------------------
 st.subheader("📝 Narrativa de los resultados")
 
-# Top 3 países con mayor CFR
-top_cfr = grouped.sort_values(by="CFR (%)", ascending=False).head(3)
+if len(grouped) < 3:
+    st.warning("⚠️ Selecciona al menos **3 países** para generar la narrativa.")
+else:
+    # Top 3 países con mayor CFR
+    top_cfr = grouped.sort_values(by="CFR (%)", ascending=False).head(3)
 
-# Top 3 países con mayor Tasa de Incidencia
-top_incidence = grouped.sort_values(by="Tasa casos por 100k (Incident_Rate)", ascending=False).head(3)
+    # Top 3 países con mayor Tasa de Incidencia
+    top_incidence = grouped.sort_values(by="Tasa casos por 100k (Incident_Rate)", ascending=False).head(3)
 
-narrativa = f"""
-El análisis de los indicadores epidemiológicos muestra diferencias claras entre países:
+    narrativa = f"""
+    El análisis de los indicadores epidemiológicos muestra diferencias claras entre países:
 
-- Los países con **mayor letalidad (CFR)** son:  
-  🥇 {top_cfr.iloc[0]['Pais']} ({top_cfr.iloc[0]['CFR (%)']:.2f}%),  
-  🥈 {top_cfr.iloc[1]['Pais']} ({top_cfr.iloc[1]['CFR (%)']:.2f}%),  
-  🥉 {top_cfr.iloc[2]['Pais']} ({top_cfr.iloc[2]['CFR (%)']:.2f}%).  
+    - Los países con **mayor letalidad (CFR)** son:  
+    🥇 {top_cfr.iloc[0]['Pais']} ({top_cfr.iloc[0]['CFR (%)']:.2f}%),  
+    🥈 {top_cfr.iloc[1]['Pais']} ({top_cfr.iloc[1]['CFR (%)']:.2f}%),  
+    🥉 {top_cfr.iloc[2]['Pais']} ({top_cfr.iloc[2]['CFR (%)']:.2f}%).  
 
-- En cuanto a la **tasa de incidencia por 100k habitantes**, los más afectados son:  
-  🥇 {top_incidence.iloc[0]['Pais']} ({top_incidence.iloc[0]['Tasa casos por 100k (Incident_Rate)']:.2f}),  
-  🥈 {top_incidence.iloc[1]['Pais']} ({top_incidence.iloc[1]['Tasa casos por 100k (Incident_Rate)']:.2f}),  
-  🥉 {top_incidence.iloc[2]['Pais']} ({top_incidence.iloc[2]['Tasa casos por 100k (Incident_Rate)']:.2f}).  
+    - En cuanto a la **tasa de incidencia por 100k habitantes**, los más afectados son:  
+    🥇 {top_incidence.iloc[0]['Pais']} ({top_incidence.iloc[0]['Tasa casos por 100k (Incident_Rate)']:.2f}),  
+    🥈 {top_incidence.iloc[1]['Pais']} ({top_incidence.iloc[1]['Tasa casos por 100k (Incident_Rate)']:.2f}),  
+    🥉 {top_incidence.iloc[2]['Pais']} ({top_incidence.iloc[2]['Tasa casos por 100k (Incident_Rate)']:.2f}).  
 
-🔎 Estos resultados permiten contrastar países con **alta propagación pero baja letalidad**, frente a otros con **menor número de casos pero mayor mortalidad relativa**. 
-"""
-st.write(narrativa)
+    🔎 Estos resultados permiten contrastar países con **alta propagación pero baja letalidad**, frente a otros con **menor número de casos pero mayor mortalidad relativa**. 
+    """
+    st.write(narrativa)
+
 # Definición de las pestañas
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📂 Vista General",
