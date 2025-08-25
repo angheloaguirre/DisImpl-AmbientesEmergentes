@@ -4,6 +4,7 @@ from modelado_temporal import mostrar_series_tiempo, mostrar_modelado_forecast, 
 from vista_general import mostrar_topn_mapa
 from clustering_pca import mostrar_clustering_pca
 from calidad_datos import mostrar_calidad_datos
+from estadistica_avanzada import mostrar_estadistica_avanzada
 
 # configuración básica
 st.set_page_config(page_title="COVID-19 JHU – Métricas y Análisis",layout="wide")
@@ -146,6 +147,7 @@ with tab1:
 with tab2:
     st.header("📈 Estadística Avanzada")
     st.write("Aquí se calcularán las métricas clave por país (Confirmados, Fallecidos, CFR, tasas por 100k).")
+    mostrar_estadistica_avanzada(df)
 
 #Modelado temporal
 with tab3:
