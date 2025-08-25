@@ -6,7 +6,6 @@ from matplotlib.ticker import FuncFormatter
 from statsmodels.tsa.api import ExponentialSmoothing
 import numpy as np
 import io
-
 # === 3.1 Generación de Series de Tiempo con Suavizado de 7 Días ===
 def mostrar_series_tiempo(df):
     # Título y descripción
