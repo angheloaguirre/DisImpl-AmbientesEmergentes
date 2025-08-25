@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 import streamlit as st
 from modelado_temporal import mostrar_series_tiempo, mostrar_modelado_forecast, bandas_confianza
 from vista_general import mostrar_topn_mapa
@@ -16,9 +17,12 @@ USERS = {
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
+current_dir = os.path.dirname(__file__)
+logo_path = os.path.join(current_dir, "LogoEpiWatch.png")
+
 # Función para login
 def login():
-    st.image("LogoEpiWatch.png", width=150)
+    st.image(logo_path, width=150)
     st.subheader("EpiWatch: Inicia sesión")
     username = st.text_input("Usuario")
     password = st.text_input("Contraseña", type="password")
@@ -39,7 +43,7 @@ else:
     st.set_page_config(page_title="COVID-19 JHU – Métricas y Análisis",layout="wide")
     colImg, colHeader = st.columns([1, 11]) 
     with colImg:
-        st.image("LogoEpiWatch.png", width=80)
+        st.image(logo_path, width=80)
     with colHeader:
         st.title("EpiWatch: COVID-19 Dashboard")
     st.caption("Fuente: Johns Hopkins CSSE – Daily Report 2022-04-18")
