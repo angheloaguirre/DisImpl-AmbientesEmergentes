@@ -216,11 +216,9 @@ else:
     #Clusters
     with tab4:
         st.header("📊 Clustering y PCA")
-        st.write("Aquí se construirá el clustering de países con K-means y se mostrarán los grupos.")
         mostrar_clustering_pca(df)
 
     #Calidad de datos
     with tab5:
         st.header("🔎 Calidad de datos")
-        st.write("Aquí se reducirá la dimensionalidad con PCA y se graficarán los componentes principales.")
         mostrar_calidad_datos(df)
