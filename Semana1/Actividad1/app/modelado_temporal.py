@@ -3,8 +3,9 @@ import streamlit as st
 from datetime import timedelta
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
+from statsmodels.tsa.api import ExponentialSmoothing
 import numpy as np
-
+import io
 # === 3.1 Generación de Series de Tiempo con Suavizado de 7 Días ===
 def mostrar_series_tiempo(df):
     # Título y descripción
@@ -94,7 +95,7 @@ def mostrar_series_tiempo(df):
     # --- construir series con índice de fechas ---
     idx = pd.to_datetime(date_list, dayfirst=True)
     confirmed_sr = pd.Series(confirmed_values, index=idx)
-    deaths_sr = pd.Series(deaths_values, index=idx)
+    deaths_sr = pd.Series(deaths_values, index=idx)  
 
     # --- Suavizado 7 días (rolling mean) ---
     confirmed_ma7 = confirmed_sr.rolling(window=7, min_periods=1, center=True).mean()
@@ -128,3 +129,281 @@ def mostrar_series_tiempo(df):
 
     # Mostrar los gráficos
     st.pyplot(fig)
+
+
+    # === EXPORTACIÓN ===
+    # CSV
+    csv = df_display.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="⬇️ Descargar datos en CSV",
+        data=csv,
+        file_name=f"series_tiempo_{country}.csv",
+        mime="text/csv"
+    )
+
+    # PNG
+    buf_png = io.BytesIO()
+    fig.savefig(buf_png, format="png")
+    st.download_button(
+        label="⬇️ Descargar gráfico en PNG",
+        data=buf_png.getvalue(),
+        file_name=f"series_tiempo_{country}.png",
+        mime="image/png"
+    )
+
+    # SVG
+    buf_svg = io.BytesIO()
+    fig.savefig(buf_svg, format="svg")
+    st.download_button(
+        label="⬇️ Descargar gráfico en SVG",
+        data=buf_svg.getvalue(),
+        file_name=f"series_tiempo_{country}.svg",
+        mime="image/svg+xml"
+    )
+# === 3.2 y 3.3 Modelado ETS y Validación ===
+def mostrar_modelado_forecast(url, df):
+    # Funciones de evaluación
+    def mae(y_true, y_pred):
+        return np.mean(np.abs(np.array(y_true)-np.array(y_pred)))
+    def mape(y_true, y_pred):
+        denom = np.where(np.array(y_true)==0,1.0,np.array(y_true))
+        return np.mean(np.abs((np.array(y_true)-np.array(y_pred))/denom))*100
+
+    # Simulación histórica
+    def simulate_history(last_value, days=60, daily_growth=0.03, noise=0.0, last_date=pd.Timestamp("2022-04-18")):
+        values_backward = [float(max(last_value,0))]
+        rng = np.random.default_rng(42)
+        for _ in range(days-1):
+            g = daily_growth
+            if noise>0: g = max(-0.5, g + rng.normal(0, noise*daily_growth))
+            prev = values_backward[-1]/(1+max(g,-0.9))
+            values_backward.append(max(prev,0.0))
+        values = list(reversed(values_backward))
+        for i in range(1,len(values)): values[i] = max(values[i],values[i-1])
+        start_date = pd.to_datetime(last_date) - pd.Timedelta(days=days-1)
+        return pd.Series(values,index=pd.date_range(start=start_date,periods=days,freq="D"))
+
+    st.subheader("🧪 Modelado y Proyección COVID-19")
+
+    try:
+        raw = pd.read_csv(url)
+    except FileNotFoundError:
+        st.error("No se encontró la url deseada. ¡Revisar bien la dirección url!")
+        st.stop()
+
+    # Limpieza básica
+    raw["Last_Update"] = pd.to_datetime(raw["Last_Update"], errors="coerce")
+    raw = raw.dropna(subset=["Last_Update"])
+    if raw.empty:
+        st.error("El archivo se cargó pero no tiene fechas válidas en 'Last_Update'.")
+        st.stop()
+
+    last_date = raw["Last_Update"].max().normalize()
+    daily = (raw.loc[raw["Last_Update"].dt.normalize() == last_date,
+                    ["Country_Region", "Confirmed", "Deaths"]]
+                .groupby("Country_Region", as_index=False)
+                .sum())
+
+    if daily.empty:
+        st.error("No se encontraron registros para la fecha del archivo.")
+        st.stop()
+
+    # UI: selección de país
+    st.subheader("Datos del día base (18/04/2022)")
+    country = st.selectbox("Seleccione un país para ver sus datos suavizados:", df['Country_Region'].unique(), key="Country_Forecast")
+
+    row = daily[daily["Country_Region"]==country].iloc[0]
+    base_confirmed, base_deaths = int(row["Confirmed"]), int(row["Deaths"])
+
+    colA, colB = st.columns(2)
+    with colA: st.metric("Confirmados", f"{base_confirmed:,}")
+    with colB: st.metric("Muertes", f"{base_deaths:,}")
+
+    st.subheader("Parámetros para generar histórico simulado")
+    sim_days = st.slider("Días histórico", 30, 120, 60)
+    growth_confirmed = st.slider("Crecimiento Confirmados", 0.0, 0.08, 0.03, 0.005)
+    growth_deaths = st.slider("Crecimiento Muertes", 0.0, 0.08, 0.02, 0.005)
+    noise_level = st.slider("Ruido", 0.0, 0.5, 0.1, 0.01)
+
+    sim_confirmed = simulate_history(base_confirmed,days=sim_days,daily_growth=growth_confirmed,noise=noise_level,last_date=last_date)
+    sim_deaths = simulate_history(base_deaths,days=sim_days,daily_growth=growth_deaths,noise=noise_level,last_date=last_date)
+    hist_df = pd.DataFrame({"Confirmed":sim_confirmed,"Deaths":sim_deaths})
+
+    st.subheader("Histórico SIMULADO")
+    st.line_chart(hist_df)
+        # Botón para exportar histórico simulado
+    st.download_button("📥 Descargar histórico simulado (CSV)",
+                       data=hist_df.to_csv(index=True).encode("utf-8"),
+                       file_name="historico_simulado.csv",
+                       mime="text/csv")
+
+    # --- 3.2 Modelado ETS ---
+    st.subheader("3.2 Implementación del Modelo ETS para pronóstico")
+    st.markdown("Se aplica el modelo ETS para proyectar **casos** o **muertes** a 14 días.")
+    target = st.selectbox("Variable a pronosticar", ["Confirmed","Deaths"])
+    series = hist_df[target]
+    if len(series)<30: st.error("Se requieren al menos 30 días simulados para entrenar ETS."); st.stop()
+
+    h=14
+    train, test = series.iloc[:-h], series.iloc[-h:]
+    try:
+        model = ExponentialSmoothing(train, trend='add', seasonal=None)
+        fit = model.fit()
+        preds = fit.forecast(h)
+    except Exception as e: st.error(f"Error al ajustar ETS: {e}"); st.stop()
+
+    # --- 3.3 Validación ---
+    st.subheader("3.3 Validación del Modelo con Backtesting (MAE / MAPE)")
+    st.markdown("Se comparan las predicciones con los valores reales del test set para evaluar precisión.")
+    mae_val, mape_val = mae(test.values, preds.values), mape(test.values, preds.values)
+    c1, c2 = st.columns(2)
+    c1.metric("MAE", f"{mae_val:,.2f}")
+    c2.metric("MAPE", f"{mape_val:.2f}%")
+
+    fig1, ax1 = plt.subplots(figsize=(9,4.5))
+    ax1.plot(train.index, train.values,label="Entrenamiento")
+    ax1.plot(test.index, test.values,label="Real (test)")
+    ax1.plot(preds.index, preds.values,"--",label="Pronóstico (test)")
+    ax1.set_title(f"Backtesting ETS - {target}")
+    ax1.legend()
+    plt.xticks(rotation=45)
+    st.pyplot(fig1)
+    # Exportar gráfico de backtesting en PNG y SVG
+    buf_png, buf_svg = io.BytesIO(), io.BytesIO()
+    fig1.savefig(buf_png, format="png", bbox_inches="tight")
+    fig1.savefig(buf_svg, format="svg", bbox_inches="tight")
+    st.download_button("📸 Descargar gráfico backtesting (PNG)", data=buf_png.getvalue(), file_name="backtesting.png", mime="image/png")
+    st.download_button("📸 Descargar gráfico backtesting (SVG)", data=buf_svg.getvalue(), file_name="backtesting.svg", mime="image/svg+xml")
+
+    # --- Proyección a 14 días ---
+    st.subheader("Proyección a 14 días hacia adelante")
+    fit_full = ExponentialSmoothing(series, trend='add', seasonal=None).fit()
+    future_fc = fit_full.forecast(h)
+    future_df = pd.DataFrame({f"Forecast_{target}":future_fc})
+    st.line_chart(future_df)
+    st.dataframe(future_df.style.format("{:,.0f}"))
+    st.info("⚠️ Este análisis es ilustrativo, basado en un histórico simulado debido a que solo se cuenta con un día real.")   
+
+
+    # Botón para exportar proyección
+    st.download_button("📥 Descargar proyección (CSV)",
+                       data=future_df.to_csv(index=True).encode("utf-8"),
+                       file_name="proyeccion.csv",
+                       mime="text/csv")
+
+    # Exportar gráfico de proyección en PNG y SVG
+    fig2, ax2 = plt.subplots(figsize=(9,4.5))
+    ax2.plot(series.index, series.values, label="Histórico")
+    ax2.plot(future_df.index, future_df.values, "--", label="Pronóstico 14d")
+    ax2.set_title(f"Proyección ETS - {target}")
+    ax2.legend()
+    plt.xticks(rotation=45)
+    st.pyplot(fig2)
+
+    buf_png2, buf_svg2 = io.BytesIO(), io.BytesIO()
+    fig2.savefig(buf_png2, format="png", bbox_inches="tight")
+    fig2.savefig(buf_svg2, format="svg", bbox_inches="tight")
+    st.download_button("📸 Descargar gráfico proyección (PNG)", data=buf_png2.getvalue(), file_name="proyeccion.png", mime="image/png")
+    st.download_button("📸 Descargar gráfico proyección (SVG)", data=buf_svg2.getvalue(), file_name="proyeccion.svg", mime="image/svg+xml")
+
+# ==================================
+# === 3.4 Mostrar bandas de confianza en la gráfica de forecast ===
+# ==================================
+def bandas_confianza(df):
+    st.subheader("⏳ 3.4 Mostrar Bandas de Confianza")
+    
+    # Seleccionar país y variable
+    country = st.selectbox("Seleccione un país para pronóstico", df['Country_Region'].unique(), key="Country_Bandas")
+    variable = st.selectbox("Variable a pronosticar", ["Confirmed", "Deaths"], key="target_selectbox")
+
+    # Filtrar datos del país
+    df_country = df[df['Country_Region'] == country].copy()
+    df_country = df_country.sort_values('Last_Update')
+    
+    if df_country.empty:
+        st.warning("No hay datos disponibles para el país seleccionado.")
+        return
+
+    series = df_country[variable].values
+
+    # Horizonte de predicción
+    h = st.slider("Días a predecir", 1, 30, 14)
+    
+    # Calcular media y desviación estándar del crecimiento
+    diffs = np.diff(series)
+    growth_mean = np.mean(diffs)
+    growth_std = np.std(diffs)
+
+    # Proyección con bandas de confianza
+    forecast = []
+    lower = []
+    upper = []
+
+    current = series[-1]
+    for _ in range(h):
+        next_val = current + growth_mean
+        forecast.append(next_val)
+        lower.append(next_val - 1.96 * growth_std)
+        upper.append(next_val + 1.96 * growth_std)
+        current = next_val
+
+    # Fechas futuras
+    future_dates = pd.date_range(start=df_country['Last_Update'].max() + pd.Timedelta(days=1), periods=h)
+
+    # Gráfico
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(df_country['Last_Update'], series, label="Histórico", color="blue")
+    ax.plot(future_dates, forecast, label="Forecast", color="green")
+    ax.fill_between(future_dates, lower, upper, color="green", alpha=0.2, label="95% Confianza")
+    ax.set_title(f"Proyección con Bandas de Confianza: {country} ({variable})")
+    ax.legend()
+    st.pyplot(fig)
+
+    # Crear CSV
+    csv_data = pd.DataFrame({
+        'Fecha': future_dates,
+        'Forecast': forecast,
+        'Lower Bound': lower,
+        'Upper Bound': upper
+    })
+    csv_buffer = io.StringIO()
+    csv_data.to_csv(csv_buffer, index=False)
+    csv_buffer.seek(0)
+    
+    # Botones de descarga
+    st.download_button(
+        label="⬇️ Descargar datos en CSV",
+        data=csv_buffer.getvalue(),
+        file_name=f"proyeccion_{country}_{variable}_forecast.csv",
+        mime="text/csv"
+    )
+
+    # Botón para descargar gráfico en formato PNG
+    st.download_button(
+        label="📸 Descargar gráfico en PNG",
+        data=fig_to_png(fig),
+        file_name=f"proyeccion_{country}_{variable}_forecast.png",
+        mime="image/png"
+    )
+
+    # Botón para descargar gráfico en formato SVG
+    st.download_button(
+        label="📸 Descargar gráfico en SVG",
+        data=fig_to_svg(fig),
+        file_name=f"proyeccion_{country}_{variable}_forecast.svg",
+        mime="image/svg+xml"
+    )
+
+def fig_to_png(fig):
+    # Convertir el gráfico a PNG
+    img_stream = io.BytesIO()
+    fig.savefig(img_stream, format='png')
+    img_stream.seek(0)
+    return img_stream
+
+def fig_to_svg(fig):
+    # Convertir el gráfico a SVG
+    img_stream = io.BytesIO()
+    fig.savefig(img_stream, format='svg')
+    img_stream.seek(0)
+    return img_stream
